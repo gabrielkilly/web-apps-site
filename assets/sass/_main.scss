@@ -1,0 +1,44 @@
+//default styles
+body {
+    background-color: $gray-dark;
+    font-family: Khand, sans-serif;
+    font-weight: 400;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    color: $gray-muted;
+    font-weight: 600;
+}
+
+//utitlity
+.v-center {
+    display: flex;
+    align-items: center;
+}
+
+//main nav
+ul.nav {
+    margin-bottom: 1rem;
+    font-weight: 600 !important;
+    a {
+        color: $gray-dark;
+    }
+    .nav-link {
+        font-size: 1.6rem;
+        text-transform: capitalize;
+        &.logo {
+            font-size: 3rem;
+        }
+    }
+    .nav-item {
+        &--right {
+            position: absolute;
+            right: 0;
+        }
+    }
+}
+
+//orange swirls background
+.orange-swirls-bg {
+    background: repeat url("/assets/images/orange-swirls-bg.png");
+}

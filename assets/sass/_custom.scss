@@ -1,0 +1,22 @@
+/* import only the necessary Bootstrap files */
+
+//Meant to overwrite the default bootstrap variables
+$gray-dark: #655D6D;
+$gray-muted: #E0CACA;
+$orange-dark: #FD9C0B;
+$orange-darker: #EB861E;
+
+
+$primary: $orange-darker;
+// $theme-colors: map-merge(
+//   (
+//     "primary": $primary,
+//     "gary-dark": $gray-dark,
+//     "gray-muted": $gray-muted,
+//     "orange-dark": $orange-dark
+//   ),
+//   $theme-colors
+// );
+
+@import "variables-darkly";
+@import "../../node_modules/bootstrap/scss/bootstrap.scss";
