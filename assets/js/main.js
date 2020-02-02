@@ -7,7 +7,7 @@ async function getJson(url, func) {
     func(data);
 }
 
-function loadTable(prop, reverse=false) {
+function loadTable(prop, reverse=false, filterObjs=null) {
     getJson('assets/json/basketball-stats.json', (data) => printTable(compareProp(prop,reverse), data));
 }
 
@@ -28,6 +28,13 @@ function compareProp(prop, reverse) {
    };
 }
 
+function filterByName(searchVal) {
+    return (a) => {
+        const srchKey = a.First + a.Last;
+        return srchKey.includes(searchVal);
+    }
+}
+
 function printTable(compareFunc, stats) {
     stats.sort(compareFunc);
 
@@ -37,14 +44,14 @@ function printTable(compareFunc, stats) {
     //all tbodys in string form 
     const tbodies = createTBodies([...stats.slice(1)]);
 
-    //concat them into to string and make into html elem
+    //concat them into to string
     const table = '<table class="table table-dark">' + thead + tbodies + '</table>';
     //append elem to table responsive
     tableParent.innerHTML = table;
 
     allTHeads = document.querySelectorAll("th");
     allTHeads.forEach((th) => th.addEventListener("click", onTHeadClick));
-
+    
 }
 
 /*
@@ -116,7 +123,15 @@ function onTHeadClick(e) {
     tableParent.dataset.thStates =  JSON.stringify({ lastName: name, lastReveredState: reversed});
     loadTable(name, reversed);
 }
+function onSearchChange(e) {
+    const searchVal = e.target.value;
+    console.log(searchVal);
+    const {lastName, reversed} = JSON.parse(tableParent.dataset.thStates);
+    loadTable(lastName, reversed, searchVal);
+}
 
 loadTable("Last", false);
 
 // document.querySelectorAll('th').forEach((th) => th.addEventListener("click", onTHeadClick));
+const searchBox = document.querySelector('#search-box');
+searchBox.addEventListener('onchange', onSearchChange);
