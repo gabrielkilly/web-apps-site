@@ -7,6 +7,7 @@ fs.readFile( __dirname + '/../data/basketball-stats.txt', function (err, data) {
   const rows = file.split('\n');
   const variablesUnformatted = rows[0].split(" ").filter((str)=> str.length > 1);
   const variables = ["Last", "First", ...variablesUnformatted.splice(1)];
+  const statNames = variables.filter(lbl => lbl != 'Last' && lbl != 'First' && lbl != 'Team');
 
   const playersUnformattedNames = [...rows.slice(1)].map((row) => {
       return row.split(" ").filter((s)=> s != "");
@@ -25,7 +26,18 @@ fs.readFile( __dirname + '/../data/basketball-stats.txt', function (err, data) {
        return playerObj;
   });
 
-  const jsonFormat = JSON.stringify(listOfObjs);
+  const teamsWithDuplicates = listOfObjs.map((playerObj) => {
+    return playerObj["Team"];
+  });
+  const teams = [...new Set(teamsWithDuplicates)];
+
+  
+
+  const jsonFormat = JSON.stringify({
+    stats: listOfObjs,
+    statNames,
+    teams
+  });
 
     fs.writeFile('basketball-stats.json', jsonFormat, (err) => {
         if (err) throw err;

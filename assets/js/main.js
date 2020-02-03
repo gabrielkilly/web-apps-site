@@ -1,4 +1,13 @@
+//Important DOM elements
 const tableParent = document.querySelector('.table-responsive');
+const searchBox = document.querySelector('#searchBox');
+const statBox = document.querySelector('#statBox');
+const teamSelector = document.querySelector('#teamSelector');
+const statNameSelector = document.querySelector('#statNameSelector');
+const comparisonSelector = document.querySelector('#comparisonSelector');
+
+teamSelector.dataset.last = "";
+statNameSelector.dataset.last = "";
 tableParent.dataset.thStates = JSON.stringify({ lastName: "", lastReveredState: false});
 
 async function getJson(url, func) {
@@ -6,11 +15,6 @@ async function getJson(url, func) {
     const data = await response.json();
     func(data);
 }
-
-function loadTable(prop, reverse=false, filterObjs=null) {
-    getJson('assets/json/basketball-stats.json', (data) => printTable(compareProp(prop,reverse), data));
-}
-
  
 function htmlToElements(html) {
     var template = document.createElement('template');
@@ -28,30 +32,79 @@ function compareProp(prop, reverse) {
    };
 }
 
-function filterByName(searchVal) {
-    return (a) => {
-        const srchKey = a.First + a.Last;
-        return srchKey.includes(searchVal);
+function matchesName(a, searchVal) {
+    if(!searchVal) return true;
+    const srchKey = a.First + a.Last;
+    return srchKey.includes(searchVal.toLowerCase());
+}
+
+function isInTeam(a, team) {
+    if(!team || team == 'Choose...') return true;
+    return a.Team == team;
+}
+
+function hasUsableStat(a, statName, statVal, compareFunc) {
+    if (!statName || statName == 'Choose...') return true;
+    return compareFunc(a[statName], statVal);
+}
+
+function parseFuncFromString(operator) {
+    switch(operator) {
+        case '>':
+            return (a, b) =>  {return a > b};
+            break;
+        case '==':
+            return (a, b) =>  {return a == b};
+            break;
+        case '<':
+            return (a, b) =>  {return a < b};
+            break
+        default:
+            return () => {};
+            break;
     }
 }
 
-function printTable(compareFunc, stats) {
-    stats.sort(compareFunc);
+function filterTable(a) {
+    const searchVal = searchBox.value;
+    const team = teamSelector.value;
+    teamSelector.dataset.last = team;
+    const statName = statNameSelector.value;
+    statNameSelector.dataset.last = statName;
+    const statVal = statBox.value;
+    const compareFunc = parseFuncFromString(comparisonSelector.value);
+    return matchesName(a, searchVal) && isInTeam(a, team) && hasUsableStat(a, statName, statVal, compareFunc);
+}
+
+function loadTable(prop, reverse=false) {
+    getJson('assets/json/basketball-stats.json', (data) => printTable(compareProp(prop,reverse), data));
+}
+
+function printTable(compareFunc, data) {
+    const {stats, teams, statNames} = data;
 
     //get thead func
     const thead = createTHead(Object.keys(stats[0]));
 
+    const playerStats = [...stats.slice(1)].filter(filterTable);
+    playerStats.sort(compareFunc);
+
     //all tbodys in string form 
-    const tbodies = createTBodies([...stats.slice(1)]);
+    const tbodies = createTBodies(playerStats);
 
     //concat them into to string
     const table = '<table class="table table-dark">' + thead + tbodies + '</table>';
     //append elem to table responsive
     tableParent.innerHTML = table;
 
+    const teamOptions = createOptions(teams, teamSelector.dataset.last);
+    const statNameOptions = createOptions(statNames, statNameSelector.dataset.last);
+
+    teamSelector.innerHTML = teamOptions;
+    statNameSelector.innerHTML = statNameOptions;
+
     allTHeads = document.querySelectorAll("th");
     allTHeads.forEach((th) => th.addEventListener("click", onTHeadClick));
-    
 }
 
 /*
@@ -111,6 +164,12 @@ function createTBodies(players) {
     return `<tbody>${middle}</tbody>`;
 }
 
+/* <option value="<"><</option> */
+function createOptions(vals, last="") {
+    const str = vals.map(val => `<option ${(last == val)?"selected":""} value="${val}">${val}</option>`).join("");
+    return `<option ${(!last)?"selected":""}>Choose...</option>` + str;
+}
+
 function onTHeadClick(e) {
     const clickedTH = e.target;
     const name = clickedTH.dataset.name;
@@ -123,15 +182,24 @@ function onTHeadClick(e) {
     tableParent.dataset.thStates =  JSON.stringify({ lastName: name, lastReveredState: reversed});
     loadTable(name, reversed);
 }
-function onSearchChange(e) {
-    const searchVal = e.target.value;
-    console.log(searchVal);
-    const {lastName, reversed} = JSON.parse(tableParent.dataset.thStates);
-    loadTable(lastName, reversed, searchVal);
+
+function onApplyClick(e) {
+    const thStates = JSON.parse(tableParent.dataset.thStates);
+    // loadTable(thStates.lastName, thStates.lastReveredState);
+    loadTable("Last");
+}
+
+function clearFilters() {
+    searchBox.value = "";
+    teamSelector.value = "";
+    teamSelector.dataset.last = "";
+    statNameSelector.value = "";
+    statNameSelector.dataset.last = "";
+    statBox.value = "";
+
+    loadTable("Last");
 }
 
 loadTable("Last", false);
-
-// document.querySelectorAll('th').forEach((th) => th.addEventListener("click", onTHeadClick));
-const searchBox = document.querySelector('#search-box');
-searchBox.addEventListener('onchange', onSearchChange);
+document.querySelector('#applyButton').addEventListener('click', onApplyClick);
+document.querySelector('#clearButton').addEventListener('click', clearFilters);
