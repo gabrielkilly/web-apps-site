@@ -25,9 +25,11 @@ function htmlToElements(html) {
 function compareProp(prop, reverse) {
    return (a, b) => {
     if (!reverse) {
-        return (a[prop] < b[prop]) ? -1 : 1;
+        if(isNaN(a[prop])) { return (a[prop] < b[prop]) ? -1 : 1; }
+        else { return (parseInt(a[prop]) < parseInt(b[prop])) ? -1 : 1; }
     } else {
-        return (a[prop] < b[prop]) ? 1 : -1;
+        if(isNaN(a[prop])) { return (a[prop] < b[prop]) ? 1 : -1; }
+        else { return (parseInt(a[prop]) < parseInt(b[prop])) ? 1 : -1; }
     }
    };
 }
@@ -173,7 +175,6 @@ function createOptions(vals, last="") {
 function onTHeadClick(e) {
     const clickedTH = e.target;
     const name = clickedTH.dataset.name;
-    console.log(tableParent);
     const thStates = JSON.parse(tableParent.dataset.thStates);
     let reversed = false;
     if(thStates.lastName == name) {
