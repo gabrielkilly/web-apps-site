@@ -47,7 +47,7 @@ function isInTeam(a, team) {
 
 function hasUsableStat(a, statName, statVal, compareFunc) {
     if (!statName || statName == 'Choose...') return true;
-    return compareFunc(a[statName], statVal);
+    return compareFunc(parseInt(a[statName]), statVal);
 }
 
 function parseFuncFromString(operator) {
@@ -75,10 +75,11 @@ function filterTable(a) {
     statNameSelector.dataset.last = statName;
     const statVal = statBox.value;
     const compareFunc = parseFuncFromString(comparisonSelector.value);
-    return matchesName(a, searchVal) && isInTeam(a, team) && hasUsableStat(a, statName, statVal, compareFunc);
+    console.log(hasUsableStat(parseInt(a), statName, parseInt(statVal), compareFunc));
+    return matchesName(a, searchVal) && isInTeam(a, team) && hasUsableStat(a, statName, parseInt(statVal), compareFunc);
 }
 
-function loadTable(prop, reverse=false) {
+function loadTable(prop="Last", reverse=false) {
     getJson('assets/json/basketball-stats.json', (data) => printTable(compareProp(prop,reverse), data));
 }
 
@@ -187,7 +188,7 @@ function onTHeadClick(e) {
 function onApplyClick(e) {
     const thStates = JSON.parse(tableParent.dataset.thStates);
     // loadTable(thStates.lastName, thStates.lastReveredState);
-    loadTable("Last");
+    loadTable();
 }
 
 function clearFilters() {
@@ -198,9 +199,9 @@ function clearFilters() {
     statNameSelector.dataset.last = "";
     statBox.value = "";
 
-    loadTable("Last");
+    loadTable();
 }
 
-loadTable("Last", false);
+loadTable();
 document.querySelector('#applyButton').addEventListener('click', onApplyClick);
 document.querySelector('#clearButton').addEventListener('click', clearFilters);
