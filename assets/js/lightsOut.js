@@ -22,14 +22,15 @@ class Game {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d");
-        this.components = {
+        this.components = {}
+        Object.assign(this.components, {
             player: new Player(this.ctx, 18, 18, {x: this.canvas.width/2, y: this.canvas.height/2}, 'orange', 1, 4),
-            enemies: [],
+            enemies: [new Enemy(this.ctx, 28, 28, {x: 10, y: 10}, 'black', 1, 2, this.components)],
             timer: {
                 startTime: 60,
                 color: "white"
             }
-        };
+        });
         this.states = {
             INTRO: 0,
             IN_PROCESS: 1,
@@ -48,8 +49,8 @@ class Game {
 
         } 
         else if(currState == states.IN_PROCESS) {
-            const { player } = components;
-            Component.renderComponents([player]);
+            const { player, enemies } = components;
+            Component.renderComponents([player, ...enemies]);
         }
         else if(currState == states.END) {
 
@@ -79,8 +80,77 @@ class Character extends Component {
         this.health = health;
         this.speed = speed;
     }
+    render() {
+        this.update();
+        this.show();
+    }
 }
 
+class Player extends Character {
+    constructor(ctx, width, height, location, color, health, speed) {
+        super(ctx, width, height, location, color, health, speed);
+    }
+    show() {
+        const {ctx, width, location, color} = this;
+        ctx.beginPath();
+        ctx.arc(location.x, location.y, width, 0, 2 * Math.PI, false);
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    update() {
+        this.normalMovement();
+    }
+    normalMovement() {
+        const {location, speed} = this;
+        if(keyStates.UP) {
+            location.y -= speed;
+        }
+        if(keyStates.DOWN) {
+            location.y += speed;
+        }
+        if(keyStates.LEFT) {
+            location.x -= speed;
+        }
+        if(keyStates.RIGHT) {
+            location.x += speed;
+        }
+    }
+}
+
+class Enemy extends Character {
+    constructor(ctx, width, height, location, color, health, speed, components) {
+        super(ctx, width, height, location, color, health, speed);
+        this.components = components;
+    }
+    show() {
+        const {ctx, width, height, location, color} = this;
+        ctx.beginPath();
+        ctx.rect(location.x, location.y, width, height);
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    update() {
+        this.normalMovement();
+    }
+    normalMovement() {
+       const {speed, height, width, location} = this;
+       const {player} = this.components;
+       const locX = location.x + (width/2);
+       const locY = location.y + (height/2)
+       if(player.location.x < locX) {
+           location.x -= speed;
+       }
+       if(player.location.x > locX) {
+           location.x += speed;
+       }
+       if(player.location.y < locY) {
+            location.y -= speed;
+        }
+       if(player.location.y > locY) {
+            location.y += speed;
+       }
+    }
+}
 
 const canvas = document.createElement('canvas');
 canvas.width = 800;
