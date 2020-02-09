@@ -19,7 +19,7 @@ window.onkeyup = function(e) { keyStates[keyControls[e.code]] = false; }
 window.onkeydown = function(e) { keyStates[keyControls[e.code]] = true; }
 
 const globals = {
-    FONT: "Arial",
+    FONT: "Khand",
     CANVAS_W: 800,
     CANVAS_H: 500
 }
@@ -75,16 +75,18 @@ class Game {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d");
+        this.score = 0;
         this.components = {};
+        this.intervals = {};
         this.utilities = {
             enforceLocationInBounds: (location) => enforceLocationInBounds(canvas.width, canvas.height, location),
-            endGame: () => this.endGame()
+            endGame: () => this.end(),
+            addToIntervals: (name, interval) => this.addToIntervals(name, interval)
         };
         Object.assign(this.components, {
-            player: new Player(this.ctx, gameInfo.player.width, gameInfo.player.height, gameInfo.player.startLocation, gameInfo.player.color, this.utilities, gameInfo.player.health, gameInfo.player.speed),
+            player: Player.createPlayer(this.ctx, this.utilities),
             enemies: [],
-            //ctx, content, fontSz, font, textAlign, location, color, utilities
-            timer: new Timer(this.ctx, gameInfo.timer.startTime, gameInfo.timer.fontSz, gameInfo.timer.font, gameInfo.timer.textAlign, gameInfo.timer.location, gameInfo.timer.color, this.utilities)
+            timer: Timer.createTimer(this.ctx, this.utilities)
         });
         this.states = {
             INTRO: 0,
@@ -93,8 +95,11 @@ class Game {
         }
         this.currState = this.states.IN_PROCESS;
     }
-    start() {
-        setInterval(() => this.render(), 20);
+    start() { 
+        this.addToIntervals('render', setInterval(() => this.render(), 20));
+        this.addToIntervals('spawnEnemy', setInterval(() => this.spawnEnemy(Enemy.createEnemy(this.ctx, this.utilities, this.components)), 8000));
+        this.spawnEnemy(Enemy.createEnemy(this.ctx, this.utilities, this.components));
+
     }
     render() {
         const {canvas, ctx, states, currState, components} = this;
@@ -108,17 +113,73 @@ class Game {
             Component.renderComponents([player, ...enemies, timer]);
         }
         else if(currState == states.END) {
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            setTimeout(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.font = "30px Comic Sans MS";
-            ctx.fillStyle = "red";
-            ctx.textAlign = "center";
-            ctx.fillText("WASTED", canvas.width/2, canvas.height/2);
+                ctx.beginPath();
+                ctx.font = `50px ${globals.FONT}`;
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+                ctx.fillText(`You Lasted ${this.score}s`, canvas.width/2, canvas.height/2);
+
+                ctx.beginPath();
+                ctx.font = `20px ${globals.FONT}`;
+                ctx.fillText(`Press <ENTER> To Play Again`, canvas.width/2, canvas.height/2 + 50);
+            }, 20);
+
+            this.addToIntervals('restart', setInterval(() => {
+                if(keyStates.START) {
+                    this.restart();
+                }
+            }, 20));
         }
     }
-    endGame() {
+    restart() {
+        this.clearIntervals();
+        this.components.player = Player.createPlayer(this.ctx, this.utilities);
+        console.log(this.components.player);
+        this.components.timer = Timer.createTimer(this.ctx, this.utilities);
+        this.currState = this.states.IN_PROCESS;
+        this.start();
+    }
+    end() {
+        this.clearIntervals();
+        this.score = this.components.timer.getTime();
+        this.clearComponents();
         this.currState = this.states.END;
+        this.render();
+        
+    }
+    addToIntervals(name, interval) {
+        this.intervals[name] = interval;
+    }
+    clearIntervals() {
+        Object.keys(this.intervals).forEach((k) => {
+            clearInterval(this.intervals[k]);
+            this.intervals[k] = null;
+        });
+    }
+    clearComponents() {
+        this.components.player = null;
+        this.components.timer = null;
+        this.components.enemies = [];
+    }
+    spawnEnemy(enemy) {
+        const {ctx} = this;
+        const enemySpawnOutline = setInterval(() => {
+            ctx.beginPath();
+            ctx.rect(enemy.location.x, enemy.location.y, enemy.width, enemy.height);
+            ctx.fillStyle = 'gray';
+            ctx.fill();
+        }, 150);
+
+        setTimeout(() => {
+            this.components.enemies.push(enemy);
+            clearInterval(enemySpawnOutline);
+        }, 1200);
     }
 }
 
@@ -158,8 +219,7 @@ class Timer extends TextComponent {
     constructor(ctx, content, fontSz, font, textAlign, location, color, utilities) {
         super(ctx, content, fontSz, font, textAlign, location, color, utilities);
         this.time = content;
-
-        setInterval(() => this.time += 1, 1000);
+        utilities.addToIntervals('timer', setInterval(() => this.time += 1, 1000));
     }
     show() {
         const {ctx, fontSz, font, textAlign, color, time, location} = this;
@@ -167,6 +227,12 @@ class Timer extends TextComponent {
         ctx.fillStyle = color;
         ctx.textAlign = textAlign;
         ctx.fillText(time, location.x, location.y);
+    }
+    getTime() {
+        return this.time;
+    }
+    static createTimer(ctx, utilities) {
+       return  new Timer(ctx, gameInfo.timer.startTime, gameInfo.timer.fontSz, gameInfo.timer.font, gameInfo.timer.textAlign, gameInfo.timer.location, gameInfo.timer.color, utilities);
     }
 }
 
@@ -221,6 +287,10 @@ class Player extends Character {
     destroy() {
         this.utilities.endGame();
     }
+    static createPlayer(ctx, utilities) {
+        console.log(gameInfo.player.startLocation);
+        return new Player(ctx, gameInfo.player.width, gameInfo.player.height, {...gameInfo.player.startLocation}, gameInfo.player.color, utilities, gameInfo.player.health, gameInfo.player.speed);
+    }
 }
 
 class Enemy extends Character {
@@ -237,12 +307,12 @@ class Enemy extends Character {
     }
     update() {
         const {player} = this.components;
-        //this.normalMovement();
+        this.normalMovement();
         // //TODO: location needs to be standardized
         if(this.hasCollision(player)) {
             //make an attackDamage stat
             player.damage(1);
-            this.damage(1);
+            //this.damage(1);
         }
     }
     normalMovement() {
@@ -265,10 +335,8 @@ class Enemy extends Character {
     }
 
     hasCollision(other) {
-
         const otherX = other.location.x - (other.width);
         const otherY = other.location.y - (other.width);
-       // console.log(locX, otherX, locY, otherY);
         if(this.location.x <= otherX + other.width*2 && 
            this.location.x + this.width >= otherX  && 
            this.location.y <= otherY + other.height*2 && 
@@ -281,14 +349,16 @@ class Enemy extends Character {
         
     }
 
-    static spawnEnemy(canvasW, canvasH) {
-        const allocation = (canvasH + canvasW) / 2;
-        const x = Math.floor((Math.random() * canvasW));
-        const y = Math.floor((Math.random() * (allocation - x)));
+    static getRandomSpawnLocation (playerLocation) {
+        //const allocation = (globals.CANVAS_H + globals.CANVAS_W) / 2;
+        const x = Math.floor((Math.random() * (globals.CANVAS_W - 20)) + 20);
+        const y = Math.floor((Math.random() * (globals.CANVAS_H - 20)) + 20);
+        return {x, y};
     }
 
-    static addEnemy() {
-        this.components.enemies.push(new Enemy());
+    static createEnemy(ctx, utilities, components) {
+        const {width, height, color, health, speed} = gameInfo.enemy;
+        return new Enemy(ctx, width, height, this.getRandomSpawnLocation(components.player.location), color, utilities, health, speed, components);
     }
 }
 
