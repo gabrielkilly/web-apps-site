@@ -11,4 +11,6 @@ rsync -r -a -v -e ssh --delete . $1:~/Local/HTML-Documents/WebApps \
 --exclude '.DS_Store' \
 --exclude 'sass' \
 --exclude 'storage/'  \
---exclude 'storage/*'
+--exclude 'storage/*' \ 
+--exclude '.history/' \
+--exclude '.metals/'
