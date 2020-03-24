@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/gabrielkilly/web-apps-site#readme",
   "dependencies": {
+    "@fortawesome/react-fontawesome": "^0.1.9",
     "bootstrap": "^4.4.1",
     "jquery": "^3.4.1",
     "popper.js": "^1.16.0"
